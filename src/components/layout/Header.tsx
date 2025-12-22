@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Globe } from 'lucide-react';
-import logo from '@/assets/logo.png';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,16 +30,13 @@ const Header = () => {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3">
-            <img src={logo} alt="D.A.C. Private Bank Logo" className="h-14 md:h-16 w-auto" />
-            <div className="flex flex-col items-start">
-              <span className="text-lg md:text-xl font-serif font-bold text-primary tracking-wide">
-                D.A.C. Private Bank
-              </span>
-              <span className="text-xs text-accent font-medium tracking-widest uppercase">
-                {t('footer.tagline')}
-              </span>
-            </div>
+          <Link to="/" className="flex flex-col items-start">
+            <span className="text-xl md:text-2xl font-serif font-bold text-primary tracking-wide">
+              D.A.C. Private Bank
+            </span>
+            <span className="text-xs md:text-sm text-accent font-medium tracking-widest uppercase">
+              {t('footer.tagline')}
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
