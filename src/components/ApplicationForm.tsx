@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,14 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+const generateCaptcha = () => {
+  const num1 = Math.floor(Math.random() * 10) + 1;
+  const num2 = Math.floor(Math.random() * 10) + 1;
+  return { num1, num2, answer: num1 + num2 };
+};
 
 interface ApplicationFormProps {
   open: boolean;
@@ -23,6 +30,8 @@ const ApplicationForm = ({ open, onOpenChange }: ApplicationFormProps) => {
   const { t } = useLanguage();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [captcha, setCaptcha] = useState(generateCaptcha());
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -30,19 +39,44 @@ const ApplicationForm = ({ open, onOpenChange }: ApplicationFormProps) => {
     message: '',
   });
 
+  useEffect(() => {
+    if (open) {
+      setCaptcha(generateCaptcha());
+      setCaptchaAnswer('');
+    }
+  }, [open]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const refreshCaptcha = () => {
+    setCaptcha(generateCaptcha());
+    setCaptchaAnswer('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (parseInt(captchaAnswer) !== captcha.answer) {
+      toast({
+        title: 'Неверный ответ',
+        description: 'Пожалуйста, решите пример правильно',
+        variant: 'destructive',
+      });
+      refreshCaptcha();
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // For now, we'll just simulate a successful submission
-      // The Telegram integration will be added after Cloud is enabled
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const { error } = await supabase.functions.invoke('send-telegram', {
+        body: formData,
+      });
+
+      if (error) throw error;
       
       toast({
         title: t('form.success'),
@@ -52,6 +86,7 @@ const ApplicationForm = ({ open, onOpenChange }: ApplicationFormProps) => {
       setFormData({ name: '', phone: '', email: '', message: '' });
       onOpenChange(false);
     } catch (error) {
+      console.error('Error sending form:', error);
       toast({
         title: t('form.error'),
         variant: 'destructive',
@@ -126,6 +161,30 @@ const ApplicationForm = ({ open, onOpenChange }: ApplicationFormProps) => {
               rows={4}
               className="border-border focus:border-accent resize-none"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="captcha">Решите пример: {captcha.num1} + {captcha.num2} = ?</Label>
+            <div className="flex gap-2">
+              <Input
+                id="captcha"
+                type="number"
+                placeholder="Ваш ответ"
+                value={captchaAnswer}
+                onChange={(e) => setCaptchaAnswer(e.target.value)}
+                required
+                className="border-border focus:border-accent"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={refreshCaptcha}
+                className="shrink-0"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           <Button
